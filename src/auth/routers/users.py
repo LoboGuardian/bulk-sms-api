@@ -33,7 +33,7 @@ class UserRegistration(BaseModel):
     class Config:
         arbitrary_types_allowed = True
     username: str = Field(...,
-                          description="The username", min_length=1,max_length=15)
+                          description="The username", min_length=1, max_length=15)
     email: EmailStr = Field(..., description="The email address")
     password: str = Field(..., description="The password",
                           min_length=6, max_length=15)
@@ -79,7 +79,19 @@ def validate_password(password: str):
     if len(not_met_criteria) > 0:
         return JSONResponse(
             status_code=400,
-            content={"valid": False, "criteria_not_met": not_met_criteria}
+            # content={"valid": False, "criteria_not_met": not_met_criteria}
+            content={"detail": [{
+                "type": "value_error",
+                "loc": [
+                    "body",
+                    "password"
+                ],
+                "msg": f"Value is not a valid password: The password is not valid. It must have {not_met_criteria[0]}",
+                "input": password,
+                "ctx": {
+                    "reason": "The email address is not valid. It must have exactly one @-sign."
+                }}]
+            }
         )
     else:
         return True

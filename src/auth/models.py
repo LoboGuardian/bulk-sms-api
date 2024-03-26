@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
 from sqlalchemy.orm import relationship
-
+from contact.models import ContactGroup
 from database import Base
 # from src.database import Base
 
@@ -13,6 +13,7 @@ class User(Base):
     email = Column(String(length=255), nullable=False)
     user_detail = relationship(
         'UserDetail', back_populates='user', uselist=False)
+    contact_group=relationship('ContactGroup',back_populates='user')
 
 
 class UserDetail(Base):
