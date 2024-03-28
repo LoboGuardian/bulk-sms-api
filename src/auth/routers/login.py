@@ -4,6 +4,7 @@ from auth.schemas import Users
 from auth.models import User
 from fastapi import FastAPI, Form
 from sqlalchemy.orm import Session
+import os
 # from auth.utils import Authenticate
 # from utils import Authenticate
 from datetime import datetime, timedelta, timezone
@@ -28,12 +29,13 @@ class Login(BaseModel):
     password: str
 
 
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 class Token(BaseModel):
@@ -55,7 +57,7 @@ def verify_password(stored_password, provided_password, salt):
 #     return pwd_context.hash(password)
 
 @router.post('/login')
-def login(data: Login, db: Session = Depends(get_db)):
+def login(data: Annotated[OAuth2PasswordRequestForm,Depends()] , db: Session = Depends(get_db)):
     email = data.email
     password = data.password
     user = db.query(User).filter(User.email == email).first()

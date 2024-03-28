@@ -19,3 +19,7 @@ class UserDetails(BaseModel):
         from_attributes = True
 
 
+
+
+
+

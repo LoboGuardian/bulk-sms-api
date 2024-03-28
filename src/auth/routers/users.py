@@ -29,6 +29,10 @@ class EnglishString(str):
         super().__init__(value)
 
 
+def has_white_spaces(text):
+    return any(char.isspace() for char in text)
+
+
 class UserRegistration(BaseModel):
     class Config:
         arbitrary_types_allowed = True
@@ -41,7 +45,10 @@ class UserRegistration(BaseModel):
     @validator('username')
     def validate_username(cls, v):
         if not v.isalpha():
-            raise ValueError("Username must contain only letters")
+            if has_white_spaces(v):
+                raise ValueError(
+                    "Username must contain only letters no white sapce")
+            raise ValueError("Username must contain only letters ")
         return v
 
 

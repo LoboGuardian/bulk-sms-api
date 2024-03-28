@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from auth.schemas import Users
 
 
 class ContactGroupBase(BaseModel):
@@ -11,8 +12,9 @@ class ContactGroupCreate(ContactGroupBase):
 
 
 class ContactGroup(ContactGroupBase):
-    id: Optional[int] = None
-    user_id: Optional[int] = None
+    id: int
+    user_id: int
+    user: Users
 
     class Config:
         from_attributes = True
@@ -23,6 +25,7 @@ class ContactBase(BaseModel):
     phone: str
     whatsapp: Optional[str] = None
     email: str
+
 
 
 class ContactCreate(ContactBase):
@@ -51,3 +54,6 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+
+

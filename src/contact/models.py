@@ -10,7 +10,7 @@ class ContactGroup(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(length=255), nullable=False)
     user = relationship('User', back_populates='contact_group')
-    contact_group=relationship('Contact',back_populates='contact')
+    contacts=relationship('Contact',back_populates='contact_group')
 
 class Contact(Base):
     __tablename__ = 'contacts'
@@ -20,5 +20,5 @@ class Contact(Base):
     whatsapp = Column(String(length=20))
     email = Column(String(length=255), nullable=False)
     group_id=Column(ForeignKey('contact_groups.id'))
-    contact = relationship('ContactGroup', back_populates='contact_group')
+    contact_group = relationship('ContactGroup', back_populates='contacts')
 

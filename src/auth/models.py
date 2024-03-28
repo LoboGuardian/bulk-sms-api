@@ -11,9 +11,9 @@ class User(Base):
     user_name = Column(String(length=255), nullable=False)
     password = Column(String(length=255), nullable=False)
     email = Column(String(length=255), nullable=False)
+    contact_group=relationship('ContactGroup',back_populates='user')
     user_detail = relationship(
         'UserDetail', back_populates='user', uselist=False)
-    contact_group=relationship('ContactGroup',back_populates='user')
 
 
 class UserDetail(Base):
@@ -25,3 +25,5 @@ class UserDetail(Base):
     rate = Column(Float)
     status = Column(Boolean, default=True)
     user = relationship('User', back_populates='user_detail')
+
+
