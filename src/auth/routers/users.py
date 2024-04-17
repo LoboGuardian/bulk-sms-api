@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 # from src.auth.schemas import Users
-from auth.schemas import Users
-from auth.models import User
+from auth.schemas import Users,UserDetailResponse
+from auth.models import User,UserDetail
 from fastapi import FastAPI, Form
 # from auth.utils import Authenticate
 from pydantic import BaseModel, EmailStr, Field, validator
@@ -148,4 +148,7 @@ async def register_user(data: UserRegistration, db: Session = Depends(get_db)):
             # Close the database session
             db.close()
 
-
+@router.get('/getUserDetail/{id}',tags=['users'],response_model=UserDetailResponse)
+async def getUserDetail(id:int,db: Session = Depends(get_db)):
+    data=db.query(UserDetail).filter(UserDetail.user_id==id).one_or_none()
+    return data

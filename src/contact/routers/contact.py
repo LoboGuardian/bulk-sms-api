@@ -12,7 +12,7 @@ import re
 from database import SessionLocal
 
 # from contact.schemas import ContactGroup, ContactCreate
-from auth.models import User
+from auth.models import User,UserDetail
 import contact.schemas
 import contact.models
 import hashlib
@@ -23,14 +23,18 @@ router = APIRouter(
 
 
 
-@router.get('/getDashboardData/')
-def totalContacts(token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
+@router.get('/getDashboardData/{id}')
+def totalContacts(id:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
     verify_token_access(token)
-    totalContacts=db.query(contact.models.Contact).count()
+    # totalContacts=db.query(contact.models.Contact.contact_group).filter_by(contact.models.Contact.contact_group.user_id==1).count()
+    totalContacts=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).count()
     totalContactGroup=db.query(contact.models.ContactGroup).count()
+    totalSmsCredit=db.query(UserDetail).filter_by(id=id).all()
+   
     return {
         'totalContacts':totalContacts,
-        'totalContactGroup':totalContactGroup
+        'totalContactGroup':totalContactGroup,
+        'totalSmsCredit': totalSmsCredit[0].sms_credit
     }
 
 @router.get('/getContactByPageNumber/{pageNumber}')

@@ -18,7 +18,12 @@ class UserDetails(BaseModel):
     class Config:
         from_attributes = True
 
+class UserDetailResponse(UserDetails):
+    id:int
+    user_id:int
 
+    class Config:
+        from_attributes = True
 
 
 

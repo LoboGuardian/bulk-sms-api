@@ -1,8 +1,9 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
 from sqlalchemy.orm import relationship
+# from src.auth.models import ContactGroup
 from contact.models import ContactGroup
+# from database import Base
 from database import Base
-# from src.database import Base
 
 
 class User(Base):

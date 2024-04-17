@@ -4,6 +4,8 @@ import time
 from auth.routers import users
 from contact.routers import contact
 from auth.routers import login
+from payment.routers import payment
+from payment.routers import transactions
 from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,6 +39,8 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(login.router)
 app.include_router(contact.router)
+app.include_router(payment.router)
+app.include_router(transactions.router)
 
 
 # @app.get('/')

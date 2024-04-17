@@ -18,6 +18,8 @@ from database import get_db
 from typing import Annotated
 from database import SessionLocal
 import hashlib
+
+
 router = APIRouter(
     prefix='/users',
     tags=['users'],

@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
 from sqlalchemy.orm import relationship
 
+# from src.database import Base
 from database import Base
 
 
@@ -18,4 +19,5 @@ class Transaction(Base):
     payment_mode_id=Column(ForeignKey('payment_modes.id'))
     amount=Column(Integer,nullable=False)
     remarks=Column(String(length=255))
+    transaction_code=Column(String(length=255),nullable=False)
 

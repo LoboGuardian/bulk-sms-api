@@ -9,6 +9,7 @@ from alembic import context
 
 from src.auth.models import *
 from src.contact.models import *
+from src.payment.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

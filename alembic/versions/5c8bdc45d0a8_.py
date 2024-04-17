@@ -1,8 +1,8 @@
-"""create account table
+"""empty message
 
-Revision ID: b3fbe38a170e
-Revises: cbf7b9e46801
-Create Date: 2024-03-20 17:53:41.148009
+Revision ID: 5c8bdc45d0a8
+Revises: f391f1c904f1
+Create Date: 2024-04-16 13:06:21.215174
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b3fbe38a170e'
-down_revision: Union[str, None] = 'cbf7b9e46801'
+revision: str = '5c8bdc45d0a8'
+down_revision: Union[str, None] = 'f391f1c904f1'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
