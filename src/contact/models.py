@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
 from sqlalchemy.orm import relationship
 
+# from database import Base
 from database import Base
 
 
@@ -10,7 +11,9 @@ class ContactGroup(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(length=255), nullable=False)
     user = relationship('User', back_populates='contact_group')
-    contacts=relationship('Contact',back_populates='contact_group')
+    contacts = relationship(
+        'Contact', back_populates='contact_group')
+
 
 class Contact(Base):
     __tablename__ = 'contacts'
@@ -19,6 +22,5 @@ class Contact(Base):
     phone = Column(String(length=20), nullable=False)
     whatsapp = Column(String(length=20))
     email = Column(String(length=255), nullable=False)
-    group_id=Column(ForeignKey('contact_groups.id'))
+    group_id = Column(ForeignKey('contact_groups.id'))
     contact_group = relationship('ContactGroup', back_populates='contacts')
-

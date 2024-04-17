@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field, validator
 # from utils import Authenticate
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from utils import has_only_english_characters
 from typing import Annotated
 from database import get_db
 import re
@@ -44,7 +45,7 @@ class UserRegistration(BaseModel):
 
     @validator('username')
     def validate_username(cls, v):
-        if not v.isalpha():
+        if not has_only_english_characters(v):
             if has_white_spaces(v):
                 raise ValueError(
                     "Username must contain only letters no white sapce")
@@ -146,3 +147,5 @@ async def register_user(data: UserRegistration, db: Session = Depends(get_db)):
         finally:
             # Close the database session
             db.close()
+
+

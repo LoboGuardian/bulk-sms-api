@@ -1,5 +1,6 @@
-from fastapi import FastAPI   # now import Base from db.base not db.base_class
-
+# now import Base from db.base not db.base_class
+from fastapi import FastAPI, Request
+import time
 from auth.routers import users
 from contact.routers import contact
 from auth.routers import login
@@ -24,16 +25,18 @@ app.add_middleware(
 )
 
 
+# @app.middleware("http")
+# async def add_process_time_header(request: Request, call_next):
+#     print('nigga')
+#     start_time = time.time()
+#     response = await call_next(request)
+#     process_time = time.time() - start_time
+#     response.headers["X-Process-Time"] = str(process_time)
+#     return response
+
 app.include_router(users.router)
 app.include_router(login.router)
-
-
-# Define a custom middleware for token verification
-
-
-
 app.include_router(contact.router)
-
 
 
 # @app.get('/')
