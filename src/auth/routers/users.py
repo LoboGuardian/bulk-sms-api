@@ -5,6 +5,7 @@ from auth.models import User,UserDetail
 from fastapi import FastAPI, Form
 # from auth.utils import Authenticate
 from pydantic import BaseModel, EmailStr, Field, validator
+from contact.models import ContactGroup
 # from utils import Authenticate
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -138,6 +139,13 @@ async def register_user(data: UserRegistration, db: Session = Depends(get_db)):
                 db.commit()
                 # Refresh the user instance to access its generated id
                 db.refresh(new_user)
+                savableData=UserDetail(user_id=new_user.id,user_type='Client',sms_credit=0,rate=1,status=True)
+                db.add(savableData)
+                new_contact_group = ContactGroup(
+                    title='Unassigned', user_id=new_user.id)
+                db.add(new_contact_group)
+                db.commit()
+                
             return {"message": "User registered successfully", "user_id": new_user.id}
         except Exception as e:
             # Rollback the transaction in case of any error
@@ -148,7 +156,12 @@ async def register_user(data: UserRegistration, db: Session = Depends(get_db)):
             # Close the database session
             db.close()
 
+
+
 @router.get('/getUserDetail/{id}',tags=['users'],response_model=UserDetailResponse)
 async def getUserDetail(id:int,db: Session = Depends(get_db)):
     data=db.query(UserDetail).filter(UserDetail.user_id==id).one_or_none()
     return data
+
+
+

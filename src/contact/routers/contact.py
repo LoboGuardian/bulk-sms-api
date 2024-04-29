@@ -27,8 +27,8 @@ router = APIRouter(
 def totalContacts(id:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
     verify_token_access(token)
     # totalContacts=db.query(contact.models.Contact.contact_group).filter_by(contact.models.Contact.contact_group.user_id==1).count()
-    totalContacts=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).count()
-    totalContactGroup=db.query(contact.models.ContactGroup).count()
+    totalContacts=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title!='Unassigned').count()
+    totalContactGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title!='Unassigned').count()
     totalSmsCredit=db.query(UserDetail).filter_by(id=id).all()
    
     return {
@@ -39,9 +39,10 @@ def totalContacts(id:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get
 
 @router.get('/getContactByPageNumber/{pageNumber}')
 def getContactByPage(pageNumber:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
-    verify_token_access(token)
-    count=db.query(contact.models.Contact).count()
-    filtered=db.query(contact.models.Contact).limit(5).offset((pageNumber-1)*5)
+    id=verify_token_access(token).id
+    count=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).count()
+    # unassignedGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).one_or_none()
+    filtered=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).limit(5).offset((pageNumber-1)*5)
     totalCount=0
     if count==5:
         totalCount=1
@@ -56,11 +57,23 @@ def getContactByPage(pageNumber:int,token:str=Depends(oauth2_scheme),db:Session=
 
 @router.get('/getAllContacts/', response_model=list[contact.schemas.Contact])
 def getAllContacts( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    id=verify_token_access(token).id
+    allContacts=[]
+    flattenedContacts=[]
+    allContactGroup = db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id).all()
+    for i in allContactGroup:
+        if len(i.contacts)!=0:
+            allContacts.append(i.contacts)
+    for i in range(len(allContacts)):
+        for j in range(len(allContacts[i])):
+            flattenedContacts.append(allContacts[i][j])
+    return flattenedContacts
+
+@router.get('/getAllContactGroup' ,response_model=list[contact.schemas.ContactGroup])
+def getAllContactGroup( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     verify_token_access(token)
-    data = db.query(contact.models.Contact).all()
+    data=db.query(contact.models.ContactGroup).all()
     return data
-
-
 
 @router.get('/getContactbyId/{id}', response_model=contact.schemas.Contact)
 def getContactById(id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -75,8 +88,7 @@ def getContactById(id: int, token: str = Depends(oauth2_scheme), db: Session = D
 def getContactGroup(user_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     verify_token_access(token)
     data = db.query(contact.models.ContactGroup).filter(
-        user_id == user_id).all()
-
+        contact.models.ContactGroup.user_id == user_id,contact.models.ContactGroup.title!='Unassigned').all()
     return data
 
 
@@ -96,15 +108,20 @@ def getContacts(groupId: int,pageNumber:int, token: str = Depends(oauth2_scheme)
             totalCount=count/5
         else:
             totalCount=(count//5)+1
-    print(totalCount)
     return {'count':totalCount,'data':data.all()}
 
 
-@router.post('/')
-def createContacts(contactDetail: contact.schemas.ContactCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+@router.post('/{id}')
+def createContacts( contactDetail: contact.schemas.ContactCreate,id:int,contactGroupId:int|None=None, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     verify_token_access(token)
+    if not contactDetail.group_id:
+        UnassignedGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title=='unassigned').all()
+        groupId=UnassignedGroup[0].id
+    else:
+        groupId=contactDetail.group_id
     data = contact.models.Contact(name=contactDetail.name, phone=contactDetail.phone,
                                   whatsapp=contactDetail.whatsapp, email=contactDetail.email)
+    data.group_id=groupId
     db.add(data)
     db.commit()
     db.refresh(data)
@@ -113,7 +130,7 @@ def createContacts(contactDetail: contact.schemas.ContactCreate, token: str = De
     }
 
 
-@router.post('/{group_id}')
+@router.post('/contactGroupId/{group_id}')
 def createContact(contactDetail: contact.schemas.ContactCreate, group_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # new_contact_create = contact.models.Contact(name=contactDetail.name,phone=contactDetail.phone,whatsapp=contactDetail.whatsapp,email=contactDetail.email, group_id=group_id)
     verify_token_access(token)
@@ -126,6 +143,7 @@ def createContact(contactDetail: contact.schemas.ContactCreate, group_id: int, d
     return {
         'message': 'Contact created'
     }
+
 
 
 @router.put('/{contact_id}')
@@ -143,6 +161,8 @@ def edit_contact(contact_id: int, contact_edit_data: contact.schemas.ContactEdit
             data.whatsapp = contact_edit_data.whatsapp
         if contact_edit_data.email:
             data.email = contact_edit_data.email
+        if contact_edit_data.group_id:
+            data.group_id=contact_edit_data.group_id
         db.commit()
         db.refresh(data)
         return data
@@ -156,9 +176,6 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db), token: str = 
     db.delete(data)
     db.commit()
     return {'message': 'Contact Deleted'}
-
-
-
 
 
 
@@ -189,8 +206,10 @@ def update_contact_groups(contactGroup: contact.schemas.ContactGroupCreate, id: 
 
 @router.delete('/unassignFromContactGroup/{contact_group_id}/{contact_id}')
 def removeFromGroup(contact_group_id:int,contact_id:int,db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    id=verify_token_access(token).id
     data=db.query(contact.models.Contact).filter(contact.models.Contact.id==contact_id,contact.models.Contact.group_id==contact_group_id).one_or_none()
-    data.group_id=None
+    unassignedGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title=='Unassigned').one_or_none()
+    data.group_id=unassignedGroup.id
     db.commit()
     return {'message':"Contact removed from the group"}
 
@@ -198,13 +217,28 @@ def removeFromGroup(contact_group_id:int,contact_id:int,db: Session = Depends(ge
 
 @router.delete('/contact_groups/{contact_group_id}')
 def delete_contact_group(contact_group_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    verify_token_access(token)
+    userid=verify_token_access(token).id
     data = db.query(contact.models.ContactGroup).filter_by(
         id=contact_group_id).one_or_none()
+    unassignedGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==userid,contact.models.ContactGroup.title=='Unassigned').one_or_none()
+
+    for cont in data.contacts:
+        cont.group_id=unassignedGroup.id
+    
+    db.commit()
     db.delete(data)
     db.commit()
     return {'message': "Contact group removed"}
 
+
+@router.get('/searchContact')
+def searchContact(text:str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    id=verify_token_access(token).id
+    # clostData=db.query(contact.models.Contact).filter(contact.models.Contact)
+    # parent=db.get(contact.models.Contact)
+    data=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.Contact.name.contains(text),contact.models.ContactGroup.user_id==id).all()
+
+    return data
 
 
 

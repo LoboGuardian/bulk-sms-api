@@ -1,9 +1,10 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime
 from sqlalchemy.orm import relationship
+import datetime
 # from src.auth.models import ContactGroup
-from contact.models import ContactGroup
-# from database import Base
+# from contact.models import ContactGroup
 from database import Base
+# from src.database import Base
 
 
 class User(Base):
@@ -12,7 +13,9 @@ class User(Base):
     user_name = Column(String(length=255), nullable=False)
     password = Column(String(length=255), nullable=False)
     email = Column(String(length=255), nullable=False)
-    contact_group=relationship('ContactGroup',back_populates='user')
+    created_at = Column(DateTime,
+                        default=datetime.datetime.now(datetime.UTC))
+    contact_group = relationship('ContactGroup', back_populates='user')
     user_detail = relationship(
         'UserDetail', back_populates='user', uselist=False)
 
@@ -26,5 +29,6 @@ class UserDetail(Base):
     rate = Column(Float)
     status = Column(Boolean, default=True)
     user = relationship('User', back_populates='user_detail')
+
 
 

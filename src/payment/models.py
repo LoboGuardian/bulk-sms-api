@@ -1,3 +1,4 @@
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float
 from sqlalchemy.orm import relationship
 
@@ -8,9 +9,10 @@ from database import Base
 class PaymentMode(Base):
     __tablename__ = 'payment_modes'
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(length=255), nullable=False)
-    key = Column(String(length=255), nullable=False)
-    token = Column(String(length=255), nullable=False)
+    environment=Column(String(length=255),nullable=False)
+    provider = Column(String(length=255), nullable=False)
+    label = Column(String(length=255), nullable=False)
+    value = Column(String(length=255), nullable=False)
 
 class Transaction(Base):
     __tablename__ = 'transactions'

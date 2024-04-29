@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 # from src.auth.schemas import Users
 # from auth.schemas import Users
-from auth.models import User
+from auth.models import User, UserDetail
 from fastapi import FastAPI, Form
 from sqlalchemy.orm import Session
 import os
@@ -34,6 +34,8 @@ class Login(BaseModel):
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
 
+
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -44,6 +46,9 @@ class Users(BaseModel):
     id:int
     user_name: str
     email:str
+    smsCredit:int
+    rate:float
+    userRole:str
     class Config:
         from_attributes = True
 
@@ -56,6 +61,8 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+    id:int|None=None
+    userRole:str|None=None
 
 
 def verify_password(stored_password, provided_password, salt):
@@ -91,16 +98,17 @@ def login(data: Login, db: Session = Depends(get_db)):
     email = data.email
     password = data.password
     user = db.query(User).filter(User.email == email).first()
+    userDetail=db.query(UserDetail).filter(UserDetail.user_id==user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not verify_password(user.password, password, "Your Salt"):
         raise HTTPException(status_code=401, detail="Incorrect password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.user_name}, expires_delta=access_token_expires
+        data={"sub": user.user_name,"id":user.id,"user_type":userDetail.user_type}, expires_delta=access_token_expires
     )
     returnData = Users(id=user.id, user_name=user.user_name,
-                     email=user.email)
+                     email=user.email,smsCredit=userDetail.sms_credit,rate=userDetail.rate,userRole=userDetail.user_type)
     return Token(user=returnData, access_token=access_token, token_type="bearer")
 
 
@@ -109,16 +117,17 @@ def login(data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = D
     email = data.username
     password = data.password
     user = db.query(User).filter(User.email == email).first()
+    userDetail=db.query(UserDetail).filter(UserDetail.user_id==user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not verify_password(user.password, password, "Your Salt"):
         raise HTTPException(status_code=401, detail="Incorrect password")
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.user_name}, expires_delta=access_token_expires
+        data={"sub": user.user_name,"id":user.id,"user_type":userDetail.user_type}, expires_delta=access_token_expires
     )
     returnData = Users(id=user.id, user_name=user.user_name,
-                       email=user.email)
+                       email=user.email,smsCredit=userDetail.sms_credit,rate=userDetail.rate,userRole=userDetail.user_type)
     return Token(user=returnData, access_token=access_token, token_type="bearer")
 
 # def authenticate_user(fake_db, email: str, password: str):
@@ -150,9 +159,11 @@ def verify_token_access(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        id:str=payload.get('id')
+        userRole:str=payload.get('user_type')
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(username=username,id=id,userRole=userRole)
     except JWTError:
         raise credentials_exception
     return token_data

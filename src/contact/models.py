@@ -24,3 +24,5 @@ class Contact(Base):
     email = Column(String(length=255), nullable=False)
     group_id = Column(ForeignKey('contact_groups.id'))
     contact_group = relationship('ContactGroup', back_populates='contacts')
+
+

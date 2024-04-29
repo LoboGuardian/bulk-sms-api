@@ -68,17 +68,22 @@ class ContactEdit(ContactBase):
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
     email: Optional[str] = None
-
+    group_id: Optional[int] = None
 
 class ContactCreate(ContactBase):
     id: Optional[int] = None
+    group_id: Optional[int] = None
+
     pass
 
+
+class ContactGroupResponse(BaseModel):
+    title: str
 
 class Contact(ContactBase):
     id: int
     group_id: Optional[int] = None
-    # contact_group: ContactGroup = None
+    contact_group: ContactGroupResponse = None
 
     class Config:
         from_attributes = True

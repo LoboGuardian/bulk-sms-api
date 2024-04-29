@@ -22,15 +22,16 @@ def createTransactionDetail(type:str, data: TransactionCreate, token: str = Depe
     if type=='E-sewa':
         paymentCode=1
     elif type=='Khalti':
-        paymentCode=2
-    else:
         paymentCode=3
+    else:
+        paymentCode=5
     if not exist:
         saveData = Transaction(user_id=data.user_id, payment_mode_id=paymentCode,
             amount=data.amount, remarks=data.remarks,transaction_code=data.transaction_code)
+        # print(data.user_id)
         updateUserDetail=db.query(UserDetail).filter_by(
-            id=data.user_id).one_or_none()
-        updateUserDetail.sms_credit=(updateUserDetail.sms_credit +data.amount)    
+            user_id=data.user_id).one_or_none()
+        updateUserDetail.sms_credit=(updateUserDetail.sms_credit + round(data.amount/updateUserDetail.rate))  
         db.add(saveData)
         db.commit()
         db.refresh(saveData)
@@ -42,4 +43,5 @@ def createTransactionDetail(type:str, data: TransactionCreate, token: str = Depe
             'message':'error occurred'
         }
 
-    
+
+

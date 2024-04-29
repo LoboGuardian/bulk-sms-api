@@ -1,11 +1,12 @@
 # now import Base from db.base not db.base_class
 from fastapi import FastAPI, Request
 import time
-from auth.routers import users
+from auth.routers import users,admin
 from contact.routers import contact
 from auth.routers import login
 from payment.routers import payment
 from payment.routers import transactions
+from sms.routers import sms
 from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,11 +38,12 @@ app.add_middleware(
 #     return response
 
 app.include_router(users.router)
+app.include_router(admin.router)
 app.include_router(login.router)
 app.include_router(contact.router)
 app.include_router(payment.router)
 app.include_router(transactions.router)
-
+app.include_router(sms.router)
 
 # @app.get('/')
 # async def root():
