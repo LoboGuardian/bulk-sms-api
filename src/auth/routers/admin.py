@@ -32,7 +32,7 @@ def getAllusers(token: str = Depends(oauth2_scheme), db: Session = Depends(get_d
         raise HTTPException(status_code=403, detail="User is not authorized")
     data = db.query(User).join(UserDetail).filter(
         UserDetail.user_type != 'Admin').all()
-
+    
     return data
 
 
@@ -50,8 +50,22 @@ def updateUserDetail(data:UserDetails, id:int,token: str = Depends(oauth2_scheme
 
 @router.put('/blockUser/{id}')
 def blockUser(id:int,token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    role = verify_token_access(token).userRole
+    if not isAdmin(role):
+        raise HTTPException(status_code=403, detail="User is not authorized")
     userDetail=db.query(UserDetail).filter(UserDetail.user_id==id).one_or_none()
     userDetail.status=not userDetail.status
     db.commit()
     return {'message':'User has been blocked'} if userDetail.status==False else {'message':'User has been blocked'}
+
+@router.delete(('/deleteUser/{id}'))
+def deleteUser(id:int,token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    role = verify_token_access(token).userRole
+    if not isAdmin(role):
+        raise HTTPException(status_code=403, detail="User is not authorized")
+    
+    userDetail=db.query(UserDetail).filter(UserDetail.id==id).one_or_none()
+    db.delete(userDetail)
+    db.commit()
+    return {'message':'User deleted'}
 

@@ -6,8 +6,21 @@ import datetime
 from database import Base
 # from src.database import Base
 
+from sqlalchemy_easy_softdelete.mixin import generate_soft_delete_mixin_class
+from sqlalchemy_easy_softdelete.hook import IgnoredTable
 
-class User(Base):
+
+
+class SoftDeleteMixin(generate_soft_delete_mixin_class(
+    # This table will be ignored by the hook
+    # even if the table has the soft-delete column
+    ignored_tables=[IgnoredTable(table_schema="public", name="cars"),]
+)):
+    # type hint for autocomplete IDE support
+    deleted_at: datetime.datetime
+
+# Apply the mixin to your Models
+class User(Base,SoftDeleteMixin):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(length=255), nullable=False)
