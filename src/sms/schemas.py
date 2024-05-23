@@ -11,8 +11,10 @@ class SmsPost(BaseModel):
     id:int
     group_id:Optional[list[int]]=None
     reciepents:Optional[list[int]]=None
-    subject:str
     description:str
+    smsCredit:int
+    schedule_type:Optional[str]=None
+    schedule_time:Optional[str]=None
     approved:bool
 
 
@@ -20,3 +22,8 @@ class DictionaryResponse(BaseModel):
     id:int
     wordd:str
 
+
+class SendBulkSms(BaseModel):
+    message:str
+    token:str
+    list:list[int]

@@ -3,7 +3,12 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-env_path = Path("../")/".env"
+# env_path = Path("../")/".env"
+
+base_dir=Path(__file__).resolve().parent.parent
+
+env_path=os.path.join(base_dir,'.env')
+
 load_dotenv(dotenv_path=env_path)
 
 
@@ -28,5 +33,5 @@ class Settings:
     MYSQL_PORT: str = os.getenv("MYSQL_PORT", "3306")
     MYSQL_DB: str = os.getenv("MYSQL_DB", "your_mysql_database")
     MYSQL_DATABASE_URL: str = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_SERVER}:{MYSQL_PORT}/{MYSQL_DB}"
-
+    
 settings = Settings()

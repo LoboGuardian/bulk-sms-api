@@ -19,9 +19,9 @@ class Contact(Base):
     __tablename__ = 'contacts'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(length=255), nullable=False)
-    phone = Column(String(length=20), nullable=False)
-    whatsapp = Column(String(length=20))
-    email = Column(String(length=255), nullable=False)
+    phone = Column(String(length=20), nullable=False,unique=True)
+    whatsapp = Column(String(length=20),unique=True)
+    email = Column(String(length=255), nullable=False,unique=True)
     group_id = Column(ForeignKey('contact_groups.id'))
     contact_group = relationship('ContactGroup', back_populates='contacts')
 

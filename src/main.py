@@ -7,6 +7,8 @@ from auth.routers import login
 from payment.routers import payment
 from payment.routers import transactions
 from sms.routers import sms
+from sms.routers.tasks import tasks
+from auth.routers import forgetPassword
 from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +30,7 @@ app.add_middleware(
 )
 
 
+
 # @app.middleware("http")
 # async def add_process_time_header(request: Request, call_next):
 #     print('nigga')
@@ -44,6 +47,8 @@ app.include_router(contact.router)
 app.include_router(payment.router)
 app.include_router(transactions.router)
 app.include_router(sms.router)
+app.include_router(tasks.router)
+app.include_router(forgetPassword.router)
 
 # @app.get('/')
 # async def root():

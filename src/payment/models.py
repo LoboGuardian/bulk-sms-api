@@ -14,6 +14,7 @@ class PaymentMode(Base):
     label = Column(String(length=255), nullable=False)
     value = Column(String(length=255), nullable=False)
 
+
 class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True, index=True)

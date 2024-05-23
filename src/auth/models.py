@@ -25,7 +25,10 @@ class User(Base,SoftDeleteMixin):
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(length=255), nullable=False)
     password = Column(String(length=255), nullable=False)
-    email = Column(String(length=255), nullable=False)
+    phone_number=Column(String(length=20),nullable=False,unique=True)
+    email = Column(String(length=255), nullable=False,unique=True)
+    company_address=Column(String(length=100),nullable=False,unique=True)
+    company_name=Column(String(length=100),nullable=False,unique=True)
     created_at = Column(DateTime,
                         default=datetime.datetime.now(datetime.UTC))
     contact_group = relationship('ContactGroup', back_populates='user')
@@ -42,6 +45,19 @@ class UserDetail(Base):
     rate = Column(Float)
     status = Column(Boolean, default=True)
     user = relationship('User', back_populates='user_detail')
+    user_token=relationship(
+        'UserToken', back_populates='user_detail', uselist=False)
+
+class UserToken(Base):
+    __tablename__='user_token'
+    id = Column(Integer, primary_key=True, index=True)
+    token=Column(String(length=255))
+    userDetailId=Column(Integer, ForeignKey('user_details.id'))
+    created_at = Column(DateTime, default=datetime.datetime.now)
+    updated_at = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    user_detail = relationship(
+        'UserDetail', back_populates='user_token', uselist=False)
+
 
 
 

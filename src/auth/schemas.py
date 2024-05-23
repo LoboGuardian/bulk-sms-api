@@ -7,6 +7,9 @@ from sqlalchemy import DateTime
 class Users(BaseModel):
     user_name: str
     email:str
+    phone_number:str
+    company_name:str
+    company_address:str
     password: str
     class Config:
         from_attributes = True
@@ -28,6 +31,13 @@ class UserDetailResponse(UserDetails):
     class Config:
         from_attributes = True
 
+class ChangePassword(BaseModel):
+    current_password:str
+    new_password:str
+    confirm_new_password:str
+    class Config:
+        from_attributes = True
+
 class UsersResponse(BaseModel):
     id:int
     user_name:str
@@ -39,7 +49,33 @@ class UsersResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class GetAllUsersResponse(BaseModel):
+    count: int
+    data: list[UsersResponse]
+
+class UpdateUser(BaseModel):
+    user_name:str
+    email:str
+    company_name:str
+    company_address:str
+    phone_number:str
 
 
+class ForgetPasswordRequest(BaseModel):
+    email: str
+
+class ResetForegetPassword(BaseModel):
+    secret_token: str
+    new_password: str
+    confirm_password: str
+
+class SuccessMessage(BaseModel):
+    success: bool
+    status_code: int
+    message: str
 
 
+class SaveSettingData(BaseModel):
+    esewa_token:str
+    khalti_token:str
+    default_rate:str

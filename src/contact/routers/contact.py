@@ -2,14 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Annotated
+from sms.models import MessageQueue, SmsBatch
 from contact.schemas import Contact, ContactGroup, ContactCreate, ContactGroupCreate
 from database import get_db
 from auth.routers.login import oauth2_scheme, verify_token_access
 from sqlalchemy.orm import subqueryload
 import math
+from auth.routers.admin import isAdmin
+from sqlalchemy import exc
 # from contact.models import ContactGroup
 import re
 from database import SessionLocal
+import re
+import json
+
 
 # from contact.schemas import ContactGroup, ContactCreate
 from auth.models import User,UserDetail
@@ -25,17 +31,22 @@ router = APIRouter(
 
 @router.get('/getDashboardData/{id}')
 def totalContacts(id:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
-    verify_token_access(token)
+    id=verify_token_access(token).id
     # totalContacts=db.query(contact.models.Contact.contact_group).filter_by(contact.models.Contact.contact_group.user_id==1).count()
     totalContacts=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title!='Unassigned').count()
     totalContactGroup=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.user_id==id,contact.models.ContactGroup.title!='Unassigned').count()
     totalSmsCredit=db.query(UserDetail).filter_by(id=id).all()
-   
+    totalSmsSent=db.query(SmsBatch).join(MessageQueue).filter(SmsBatch.user_id==id,MessageQueue.status==1).count()
+    
     return {
         'totalContacts':totalContacts,
         'totalContactGroup':totalContactGroup,
-        'totalSmsCredit': totalSmsCredit[0].sms_credit
+        'totalSmsCredit': totalSmsCredit[0].sms_credit,
+        'totalSmsSent':totalSmsSent
     }
+
+
+
 
 @router.get('/getContactByPageNumber/{pageNumber}')
 def getContactByPage(pageNumber:int,token:str=Depends(oauth2_scheme),db:Session=Depends(get_db)):
@@ -69,11 +80,19 @@ def getAllContacts( token: str = Depends(oauth2_scheme), db: Session = Depends(g
             flattenedContacts.append(allContacts[i][j])
     return flattenedContacts
 
+
+
 @router.get('/getAllContactGroup' ,response_model=list[contact.schemas.ContactGroup])
 def getAllContactGroup( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    verify_token_access(token)
-    data=db.query(contact.models.ContactGroup).all()
+    userRole=verify_token_access(token).userRole
+    if not isAdmin(userRole):
+        raise HTTPException(status_code=403, detail="User is not authorized")
+    
+    data=db.query(contact.models.ContactGroup).filter(contact.models.ContactGroup.title!='Unassigned').all()
     return data
+
+
+
 
 @router.get('/getContactbyId/{id}', response_model=contact.schemas.Contact)
 def getContactById(id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -84,12 +103,21 @@ def getContactById(id: int, token: str = Depends(oauth2_scheme), db: Session = D
     return data
 
 
-@router.get('/contact_groups/{user_id}', response_model=list[contact.schemas.ContactGroup])
-def getContactGroup(user_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+
+@router.get('/contact_groups/{user_id}/{option}', response_model=list[contact.schemas.ContactGroup])
+def getContactGroup(user_id: int,option:str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     verify_token_access(token)
     data = db.query(contact.models.ContactGroup).filter(
         contact.models.ContactGroup.user_id == user_id,contact.models.ContactGroup.title!='Unassigned').all()
-    return data
+    if option=='all':
+        return data
+    else:
+        returnData=[]
+        for obj in data:
+            if len(obj.contacts)!=0:
+                returnData.append(obj)
+        return returnData
+
 
 
 
@@ -111,6 +139,23 @@ def getContacts(groupId: int,pageNumber:int, token: str = Depends(oauth2_scheme)
     return {'count':totalCount,'data':data.all()}
 
 
+def convert_error_to_json(error_message):
+    wrappedMessage=f'"""{error_message}"""'
+    match = re.match(r"""\(\d+, "Duplicate entry '(\d+)' for key '(.+?)'\)""", wrappedMessage)
+    if match:
+        phone_number = match.group(1)
+        key = match.group(2)
+        error = {
+            "error": "Duplicate entry",
+            "key": key,
+            "phone": phone_number,
+            "message": f"The value '{phone_number}' already exists for key '{key}'."
+        }
+        return json.dumps(error, indent=2)
+    else:
+        return "Error message format is not recognized."
+
+
 @router.post('/{id}')
 def createContacts( contactDetail: contact.schemas.ContactCreate,id:int,contactGroupId:int|None=None, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     verify_token_access(token)
@@ -119,16 +164,33 @@ def createContacts( contactDetail: contact.schemas.ContactCreate,id:int,contactG
         groupId=UnassignedGroup[0].id
     else:
         groupId=contactDetail.group_id
-    data = contact.models.Contact(name=contactDetail.name, phone=contactDetail.phone,
-                                  whatsapp=contactDetail.whatsapp, email=contactDetail.email)
-    data.group_id=groupId
-    db.add(data)
-    db.commit()
-    db.refresh(data)
-    return {
-        'message': 'Contact created'
-    }
+    try:
+        data = contact.models.Contact(name=contactDetail.name, phone=contactDetail.phone,
+                                    whatsapp=contactDetail.whatsapp, email=contactDetail.email)
+        data.group_id=groupId
+        db.add(data)
+        db.commit()
+        db.refresh(data)
+        return {
+            'message': 'Contact created'
+        }
+    except Exception as e:
+        if type(e).__name__=='IntegrityError':
+            data=str(e.__dict__['orig'])
+            splittedData=data.split(' ')
+            result = re.search(r'contacts\.(.*)\'', splittedData[len(splittedData)-1]).group(1)
 
+            if splittedData[1]=='"Duplicate':
+                raise HTTPException(status_code=400,detail={
+                    'inputField':result,
+                    'message':f'{result.capitalize()} is already taken'})
+                # return {'message':f'{result} is already taken'}
+
+
+            # print(convert_error_to_json(str(e.__dict__['orig'])))
+            # return {'message':'red'}
+            # return {'message':'Cant add the same data twice'}
+           
 
 @router.post('/contactGroupId/{group_id}')
 def createContact(contactDetail: contact.schemas.ContactCreate, group_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -151,22 +213,32 @@ def edit_contact(contact_id: int, contact_edit_data: contact.schemas.ContactEdit
     verify_token_access(token)
     data = db.query(contact.models.Contact).filter(
         contact.models.Contact.id == contact_id).first()
-    if data:
-        # Update the contact fields if they are provided in the contact_edit_data
-        if contact_edit_data.name:
-            data.name = contact_edit_data.name
-        if contact_edit_data.phone:
-            data.phone = contact_edit_data.phone
-        if contact_edit_data.whatsapp is not None:
-            data.whatsapp = contact_edit_data.whatsapp
-        if contact_edit_data.email:
-            data.email = contact_edit_data.email
-        if contact_edit_data.group_id:
-            data.group_id=contact_edit_data.group_id
-        db.commit()
-        db.refresh(data)
-        return data
+    try:
+        if data:
+            # Update the contact fields if they are provided in the contact_edit_data
+            if contact_edit_data.name:
+                data.name = contact_edit_data.name
+            if contact_edit_data.phone:
+                data.phone = contact_edit_data.phone
+            if contact_edit_data.whatsapp is not None:
+                data.whatsapp = contact_edit_data.whatsapp
+            if contact_edit_data.email:
+                data.email = contact_edit_data.email
+            if contact_edit_data.group_id:
+                data.group_id=contact_edit_data.group_id
+            db.commit()
+            db.refresh(data)
+            return data
+    except Exception as e:
+        if type(e).__name__=='IntegrityError':
+            data=str(e.__dict__['orig'])
+            splittedData=data.split(' ')
+            result = re.search(r'contacts\.(.*)\'', splittedData[len(splittedData)-1]).group(1)
 
+            if splittedData[1]=='"Duplicate':
+                raise HTTPException(status_code=400,detail={
+                    'inputField':result,
+                    'message':f'{result.capitalize()} is already taken'})
 
 @router.delete('/{contact_id}')
 def delete_contact(contact_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
@@ -237,7 +309,6 @@ def searchContact(text:str, db: Session = Depends(get_db), token: str = Depends(
     # clostData=db.query(contact.models.Contact).filter(contact.models.Contact)
     # parent=db.get(contact.models.Contact)
     data=db.query(contact.models.Contact).join(contact.models.ContactGroup).filter(contact.models.Contact.name.contains(text),contact.models.ContactGroup.user_id==id).all()
-
     return data
 
 
